@@ -61,24 +61,27 @@ def post_story(request):
 
 @csrf_exempt
 def get_story(request):
-    story = json.loads(request.body)  # a piece of story
+    req_data = json.loads(request.body)  # a piece of story
     stories = NewsStories.objects.all()  # all stories
     stoty_list = []
     check_login(request)
 
+    if req_data.get("key", None):
+        stories = NewsStories.objects.filter(key=req_data['key'])
+
     # converting to right format
-    if stories['story_cat'] != '*':
-        stories = stories.filter(category=story.get("story_cat"))
-    if stories['story_region'] != '*':
-        stories = stories.filter(category=story.get("story_region"))
-    if stories['story_date'] != '*':
-        construct_date = datetime.datetime.strptime(story.get('story_date'), "%d/%m/%Y").strftime("%Y-%m-%d")
-        stories = stories.filter(date=construct_date)
+    #     # if req_data['story_cat'] != '*':
+    #     #     stories = stories.filter(category=req_data.get("story_cat"))
+    #     # if req_data['story_region'] != '*':
+    #     #     stories = stories.filter(category=req_data.get("story_region"))
+    #     # if req_data['story_date'] != '*':
+    #     #     construct_date = datetime.datetime.strptime(req_data.get('story_date'), "%d/%m/%Y").strftime("%Y-%m-%d")
+    #     stories = stories.filter(date=construct_date)
     # print(stories)
     for story in stories:
         story_json_info = {'key': str(story.key), 'headline': story.headline, 'story_cat': story.category,
                            'story_region': story.region, 'author': story.author.username, 'story_date': str(story.date),
-                           'story_details': story.detail}
+                           'story_details': story.details}
         stoty_list.append(story_json_info)
     print(stoty_list)
     if len(stoty_list) == 0:

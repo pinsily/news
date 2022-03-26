@@ -38,13 +38,13 @@ class Client():
     def logout(self):
         print("\nLoggin out....")
         try:
-            r = self.s.post(self.url + "api/logout/", timeout=10)
+            r = self.s.post(self.base_url + "api/logout/", timeout=10)
             print(r.text)
             print("Status Code is %s" % r.status_code)
-            if (r.status_code == 200):
+            if r.status_code == 200:
                 self.status = "None"
         except requests.exceptions.RequestException:
-            print("Error! Failed to logout from ", self.url)
+            print("Error! Failed to logout from ", self.base_url)
 
     # Sends a post request to add a news story to a news agency
     def post(self):
@@ -68,76 +68,18 @@ class Client():
         except requests.exceptions.RequestException:
             print("Error! Failed to post to ", self.url)
 
-    # gets news stories from a single news agency
-    def getSingleStories(self, params, agency=None):  # params: 0=id  1=cat   2=reg   3=date
-        payload = {'story_cat': params[1], 'story_region': params[2], 'story_date': params[3]}
-
-        if (agency == None):
-            agency = self.getAgency(params[0])
-        if (agency == "Not Found"):
-            print("Error! Could not find agency with unique code ", params[0])
-            return
-
-        url = agency["url"]
-        if not url.startswith("http://"):
-            url = "http://" + url
-        if not url.endswith("/"):
-            url = url + "/"
-
-        try:
-            r = self.s.get(url + "api/getstories/", data=json.dumps(payload), headers=self.form_headers, timeout=10)
-            print("\nRetrieving News Stories from ", agency["agency_name"], "....")
-
-            if (r.status_code == 200):
-                stories = json.loads(r.text)
-                i = 1
-                for story in stories["stories"]:
-                    print("\nStory ", i)
-                    print("Key: ".ljust(20), story["key"])
-                    print("Headline: ".ljust(20), story["headline"])
-                    print("Category: ".ljust(20), story["story_cat"])
-                    print("Region: ".ljust(20), story["story_region"])
-                    print("Author Name: ".ljust(20), story["author"])
-                    print("Date Published: ".ljust(20), story["story_date"])
-                    print("Details: ".ljust(20), story["story_details"])
-                    i += 1
-            else:
-                print("\nError! Failed to retrieve stories from ", url)
-                if (len(r.text) <= 500):
-                    print(r.text)
-                print("Status Code is %s" % r.status_code)
-        except Exception:
-            print("\nError! Failed to retrieve stories from ", url)
-
-    # Gets news stories from all news agencies registered in the directory
-    def getAllStories(self, params):
-        print("\nGetting News Stories From All Agencies....")
-        r = self.s.get('http://directory.pythonanywhere.com/api/list/', timeout=4)
-
-        if (r.status_code == 200):
-            agencies = json.loads(r.text)
-            for agency in agencies["agency_list"]:
-                self.getSingleStories(params, agency=agency)
-        else:
-            print(r.text)
-            print("Status Code is %s" % r.status_code)
-
-    # Attempts to delete a story from a news agency
-    def deleteStory(self, key):
+    def delete(self, key):
         print("\nDeleting Story With Key:", key, "....")
         payload = {'story_key': key}
 
         try:
-            r = self.s.post(self.url + "api/deletestory/", data=json.dumps(payload), headers=self.json_headers,
+            r = self.s.post(self.base_url + "api/deletestory/", data=json.dumps(payload), headers=self.json_headers,
                             timeout=10)
             print(r.text)
             print("Status Code is %s" % r.status_code)
         except requests.exceptions.RequestException:
             print("Error! Failed to delete story with key ", key)
 
-    # initially, this should be used once to register your agency in the directory
-    # insert your service details before calling this function
-    # -------------------------------------------------------------------
     def register(self):
         print("\nRegistering Service....")
         payload = {"agency_name": "Enter your agency name here",
@@ -151,22 +93,32 @@ class Client():
 
     # Lists all agencies registered in the directory
     def list(self):
-        print("\nListing all agencies in the directory....")
-        r = self.s.get('http://directory.pythonanywhere.com/api/list/', timeout=10)
+        data = {
+        }
+        try:
+            r = self.s.get(self.base_url + "api/getstory/", data=json.dumps(data), headers=self.form_headers,
+                           timeout=10)
 
-        if (r.status_code == 200):
-            agencies = json.loads(r.text)
-            i = 1
-            for agency in agencies["agency_list"]:
-                print("\nAgency ", i)
-                print("Name: ".ljust(35), agency["agency_name"])
-                print("URL: ".ljust(35), agency["url"])
-                print("Unique Code: ".ljust(35), agency["agency_code"])
-                i += 1
-        else:
-            if (len(r.text) <= 500):
-                print(r.text)
-            print("Status Code is %s" % r.status_code)
+            if r.status_code == 200:
+                stories = r.json()
+                i = 1
+                for story in stories["stories"]:
+                    print("\nStory ", i)
+                    print("Key: ".ljust(20), story["key"])
+                    print("Headline: ".ljust(20), story["headline"])
+                    print("Category: ".ljust(20), story["story_cat"])
+                    print("Region: ".ljust(20), story["story_region"])
+                    print("Author Name: ".ljust(20), story["author"])
+                    print("Date Published: ".ljust(20), story["story_date"])
+                    print("Details: ".ljust(20), story["story_details"])
+                    i += 1
+            else:
+                print("\nError! Failed to retrieve stories from ", self.base_url)
+                if (len(r.text) <= 500):
+                    print(r.text)
+                print("Status Code is %s" % r.status_code)
+        except Exception:
+            print("\nError! Failed to retrieve stories from ", self.base_url)
 
     # Given the 3 letter agency code, will find and return the agency object
     def getAgency(self, code):
@@ -189,9 +141,10 @@ class Client():
         print("--> login")
         print("--> logout")
         print("--> post")
-        print("--> news [id def=*] [cat def=*] [reg def=*] [date def=*]")
         print("--> list")
-        print("--> delete [id]")
+        print("--> get [key]")
+        print("--> delete [key]")
+        print("--> query [catgory default=*] [region default=*] [date default=*]")
         print("--> exit")
         print("--> show")
         print("-" * 85)
@@ -225,8 +178,35 @@ class Client():
             else:
                 handler()
 
-    # def detail(self, index):
-    #     self.getSingleStories()
+    def detail(self, index):
+        data = {
+            "key": index
+        }
+        try:
+            r = self.s.get(self.base_url + "api/getstory/", data=json.dumps(data), headers=self.form_headers, timeout=10)
+
+            if r.status_code == 200:
+                stories = r.json()
+                i = 1
+                for story in stories["stories"]:
+                    print("\nStory ", i)
+                    print("Key: ".ljust(20), story["key"])
+                    print("Headline: ".ljust(20), story["headline"])
+                    print("Category: ".ljust(20), story["story_cat"])
+                    print("Region: ".ljust(20), story["story_region"])
+                    print("Author Name: ".ljust(20), story["author"])
+                    print("Date Published: ".ljust(20), story["story_date"])
+                    print("Details: ".ljust(20), story["story_details"])
+                    i += 1
+            else:
+                print("\nError! Failed to retrieve stories from ", self.base_url)
+                if (len(r.text) <= 500):
+                    print(r.text)
+                print("Status Code is %s" % r.status_code)
+        except Exception:
+            print("\nError! Failed to retrieve stories from ", self.base_url)
+
+
 
 
     # Processes the news input and calls relevant class functions
