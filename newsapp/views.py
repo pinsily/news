@@ -42,7 +42,11 @@ def post_story(request):
     if request.method != 'POST':
         return HttpResponse(status=405, content_type='text/plain')
 
-    authname = Authors.objects.get(username=request.COOKIES.get('uname'))
+    try:
+        authname = Authors.objects.get(username=request.COOKIES.get('uname'))
+    except Authors.DoesNotExist:
+        return build_response("--- You haven't logged in yet", 400)
+
     story = json.loads(request.body)
 
     # check category and region
@@ -111,4 +115,4 @@ def check_login(request):
     login status check
     """
     if not request.COOKIES.get('login'):
-        return build_response("--- You haven't logged in yet", 200)
+        return build_response("--- You haven't logged in yet", 400)
