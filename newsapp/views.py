@@ -99,7 +99,7 @@ def get_story(request):
         construct_date = datetime.datetime.strptime(req_data.get('story_date'), "%d/%m/%Y").strftime("%Y-%m-%d")
         stories = stories.filter(date=construct_date)
 
-    print(stories)
+    # print(stories)
     for story in stories:
         story_json_info = {'key': str(story.key), 'headline': story.headline, 'story_cat': story.category,
                            'story_region': story.region, 'author': story.author.username, 'story_date': str(story.date),

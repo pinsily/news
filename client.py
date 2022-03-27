@@ -1,15 +1,12 @@
-import requests
 import json
-import re
-import datetime
+
+import requests
 
 
 class Client:
     # Init function to set required class variables
     def __init__(self):
         self.session = requests.Session()
-        self.url = "None"
-        self.status = "None"
         self.base_url = "http://127.0.0.1:8000/"
         # self.base_url = "https://1001james.pythonanywhere.com/"
         self.json_headers = {'content-type': 'application/json'}
@@ -42,11 +39,6 @@ class Client:
         if response.json():
             print(f"login res: {response.json().get('msg')}")
 
-        if response.status_code == 200:
-            self.status = "(" + username + ") "
-        else:
-            self.url = "None"
-
     def logout(self):
         """
         logout
@@ -54,8 +46,6 @@ class Client:
         print("\nLoggin out....")
 
         response = self.session.post(self.base_url + "api/logout/", timeout=10)
-        if response.status_code == 200:
-            self.status = "None"
 
         if response.json():
             print(f"login res: {response.json().get('msg')}")
@@ -114,12 +104,29 @@ class Client:
 
         if response.status_code == 200:
             stories = response.json()
-            i = 1
-
             self.print_table(stories)
 
         else:
             print("\n--- list nothing!")
+
+    def query(self, command):
+        """
+        query
+        """
+        data = {}
+        for cmd in command[1:]:
+            param, value = cmd.split("=")
+            data[param] = value
+
+        response = self.session.get(self.base_url + "api/getstory/", data=json.dumps(data), headers=self.form_headers,
+                                    timeout=10)
+
+        if response.status_code == 200:
+            stories = response.json()
+
+            self.print_table(stories)
+        else:
+            print("\n--- query nothing!")
 
     def show(self):
         """
@@ -132,7 +139,7 @@ class Client:
         print("--> logout")
         print("--> post")
         print("--> list")
-        print("--> get [key]")
+        print("--> detail [key]")
         print("--> delete [key]")
         print("--> query [catgory default=*] [region default=*] [date default=*]")
         print("--> exit")
@@ -168,24 +175,6 @@ class Client:
             else:
                 handler()
 
-    def query(self, command):
-        """
-        query
-        """
-        data = {}
-        for cmd in command[1:]:
-            param, value = cmd.split("=")
-            data[param] = value
-
-        response = self.session.get(self.base_url + "api/getstory/", data=json.dumps(data), headers=self.form_headers,
-                                    timeout=10)
-
-        if response.status_code == 200:
-            stories = response.json()
-
-            self.print_table(stories)
-        else:
-            print("\n--- query nothing!")
 
 
     def print_table(self, stories):
